@@ -94,7 +94,7 @@ def load_indices():
     with open(os.path.join(base, 'doc_map.json'),          'r') as f: docmap    = json.load(f)
     return index, positional, docmap
 
-# Query engine
+
 def intersect(a, b):
     r, i, j = [], 0, 0
     while i < len(a) and j < len(b):
@@ -199,21 +199,22 @@ def process_query(query, index, positional, docmap):
 class IRApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Boolean IR System")
+        self.root.title("Boolean Retrieval Model")
         self.root.geometry("1000x680")
-        self.root.configure(bg="#0d0f14")
+        self.root.configure(bg="#1a1a2e")
         self.root.resizable(True, True)
 
-        # Colours
-        self.BG      = "#0d0f14"
-        self.SURFACE = "#13161e"
-        self.BORDER  = "#1f2433"
-        self.ACCENT  = "#00c8e0"
-        self.TEXT    = "#e2e8f0"
-        self.MUTED   = "#4a5568"
-        self.FAIL    = "#ff5252"
-        self.PASS    = "#00e676"
-        self.CARD    = "#181c27"
+        self.BG      = "#16213e"  
+        self.SURFACE = "#0f3460"  
+        self.BORDER  = "#533483"  
+        self.ACCENT  = "#e94560"  
+        self.SECONDARY = "#a8d8ea"  
+        self.TEXT    = "#ffffff" 
+        self.MUTED   = "#c4c4c4" 
+        self.FAIL    = "#ff6b6b"  
+        self.PASS    = "#4ecdc4" 
+        self.CARD    = "#1a1a2e"  
+        self.HIGHLIGHT = "#feca57"  
 
         # Load data
         try:
@@ -231,22 +232,22 @@ class IRApp:
         hdr.pack(fill='x', side='top')
         hdr.pack_propagate(False)
 
-        tk.Label(hdr, text="IR", bg=self.ACCENT, fg="#000",
-                 font=("Courier New", 14, "bold"),
-                 width=3, relief='flat').pack(side='left', padx=(20,12), pady=14)
+        tk.Label(hdr, text="🔍 IR", bg=self.ACCENT, fg="#ffffff",
+                 font=("Segoe UI", 16, "bold"),
+                 width=4, relief='raised', bd=2).pack(side='left', padx=(20,12), pady=14)
 
         tk.Label(hdr, text="Boolean Retrieval System",
                  bg=self.SURFACE, fg=self.TEXT,
-                 font=("Courier New", 13, "bold")).pack(side='left')
+                 font=("Segoe UI", 14, "bold")).pack(side='left')
 
-        tk.Label(hdr, text=f"  ·  {len(self.docmap)} documents loaded",
-                 bg=self.SURFACE, fg=self.MUTED,
-                 font=("Courier New", 9)).pack(side='left')
+        tk.Label(hdr, text=f"  📄 {len(self.docmap)} documents loaded",
+                 bg=self.SURFACE, fg=self.SECONDARY,
+                 font=("Segoe UI", 10)).pack(side='left')
 
-        tk.Label(hdr, text="v1.0",
-                 bg=self.SURFACE, fg=self.ACCENT,
-                 font=("Courier New", 9),
-                 relief='solid', bd=1, padx=6).pack(side='right', padx=20)
+        tk.Label(hdr, text="v2.0 ✨",
+                 bg=self.SURFACE, fg=self.HIGHLIGHT,
+                 font=("Segoe UI", 10, "bold"),
+                 relief='solid', bd=2, padx=8).pack(side='right', padx=20)
 
         # Main area
         body = tk.Frame(self.root, bg=self.BG)
@@ -264,26 +265,36 @@ class IRApp:
         self._build_left(left)
         self._build_right(right)
 
-    def _lbl(self, parent, text, size=9, color=None, bold=False):
-        font = ("Courier New", size, "bold" if bold else "normal")
+    def _lbl(self, parent, text, size=10, color=None, bold=False):
+        font = ("Segoe UI", size, "bold" if bold else "normal")
         tk.Label(parent, text=text, bg=parent['bg'],
-                 fg=color or self.MUTED,
+                 fg=color or self.SECONDARY,
                  font=font).pack(anchor='w', padx=14, pady=(10,2))
 
     def _build_left(self, parent):
-        # Query section label
-        self._lbl(parent, "QUERY", color=self.MUTED)
+        # Quick insert
+        self._lbl(parent, "QUICK INSERT", color=self.MUTED)
+        chips_frame = tk.Frame(parent, bg=self.SURFACE)
+        chips_frame.pack(fill='x', padx=12, pady=(0,8))
+        chips = [(" AND ", " AND "), (" OR ", " OR "), ("NOT ", "NOT "),
+                 ("( )", "( )"), ("/1", " /1"), ("/2", " /2"), ("/3", " /3")]
+        for idx, (label, text) in enumerate(chips):
+            tk.Button(chips_frame, text=label, bg=self.SECONDARY, fg=self.BG,
+                      font=("Segoe UI", 9, "bold"), relief='raised', bd=2,
+                      padx=8, pady=4, cursor='hand2',
+                      command=lambda t=text: self._insert(t)).grid(row=idx//4, column=idx%4, padx=3, pady=3, sticky='w')
 
-        # Textarea
+        # Query section
+        self._lbl(parent, "SEARCH QUERY", color=self.MUTED)
         ta_frame = tk.Frame(parent, bg=self.BORDER, bd=0)
         ta_frame.pack(fill='x', padx=12, pady=(0,4))
 
         self.query_input = tk.Text(ta_frame, height=4, bg=self.CARD, fg=self.TEXT,
-                                   insertbackground=self.ACCENT,
-                                   font=("Courier New", 11),
-                                   relief='flat', bd=6, wrap='word',
+                                   insertbackground=self.HIGHLIGHT,
+                                   font=("Segoe UI", 12),
+                                   relief='sunken', bd=3, wrap='word',
                                    selectbackground=self.ACCENT,
-                                   selectforeground="#000")
+                                   selectforeground="#ffffff")
         self.query_input.pack(fill='x')
         self.query_input.bind('<Return>', lambda e: (self._run_query(), 'break'))
 
@@ -291,32 +302,18 @@ class IRApp:
         self._set_placeholder()
 
         # Search button
-        btn = tk.Button(parent, text="⌕  SEARCH",
-                        bg=self.ACCENT, fg="#000",
-                        font=("Courier New", 11, "bold"),
-                        relief='flat', bd=0, pady=8,
-                        activebackground="#00a0b8", activeforeground="#000",
+        btn = tk.Button(parent, text="🔎 SEARCH",
+                        bg=self.ACCENT, fg="#ffffff",
+                        font=("Segoe UI", 12, "bold"),
+                        relief='raised', bd=3, pady=10,
+                        activebackground="#c0392b", activeforeground="#ffffff",
                         cursor='hand2', command=self._run_query)
-        btn.pack(fill='x', padx=12, pady=(0,8))
-
-        # Quick insert
-        self._lbl(parent, "QUICK INSERT", color=self.MUTED)
-        chips_frame = tk.Frame(parent, bg=self.SURFACE)
-        chips_frame.pack(fill='x', padx=12, pady=(0,4))
-        chips = [(" AND ", " AND "), (" OR ", " OR "), ("NOT ", "NOT "),
-                 ("( )", "( )"), ("/1", " /1"), ("/2", " /2"), ("/3", " /3")]
-        row = tk.Frame(chips_frame, bg=self.SURFACE)
-        row.pack(fill='x')
-        for label, text in chips:
-            tk.Button(row, text=label, bg=self.CARD, fg=self.ACCENT,
-                      font=("Courier New", 8), relief='flat', bd=1,
-                      padx=6, pady=3, cursor='hand2',
-                      command=lambda t=text: self._insert(t)).pack(side='left', padx=2, pady=2)
+        btn.pack(fill='x', padx=12, pady=(0,12))
 
         # Syntax reference
         self._lbl(parent, "SYNTAX REFERENCE", color=self.MUTED)
         syntax_frame = tk.Frame(parent, bg=self.CARD, bd=0)
-        syntax_frame.pack(fill='x', padx=12, pady=(0,4))
+        syntax_frame.pack(fill='x', padx=12, pady=(0,8))
         rows = [("term",              "Single term"),
                 ("t1 AND t2",         "Both must appear"),
                 ("t1 OR t2",          "Either term"),
@@ -326,16 +323,16 @@ class IRApp:
                 ("t1 t2 /k",          "Within k words")]
         for code, desc in rows:
             r = tk.Frame(syntax_frame, bg=self.CARD)
-            r.pack(fill='x', padx=8, pady=1)
-            tk.Label(r, text=code,  bg=self.CARD, fg=self.ACCENT,
-                     font=("Courier New", 8), width=18, anchor='w').pack(side='left')
+            r.pack(fill='x', padx=8, pady=2)
+            tk.Label(r, text=code,  bg=self.CARD, fg=self.HIGHLIGHT,
+                     font=("Segoe UI", 9, "bold"), width=18, anchor='w').pack(side='left')
             tk.Label(r, text=desc,  bg=self.CARD, fg=self.MUTED,
-                     font=("Courier New", 8), anchor='w').pack(side='left')
+                     font=("Segoe UI", 9), anchor='w').pack(side='left')
 
         # History
         self._lbl(parent, "RECENT QUERIES", color=self.MUTED)
         self.hist_frame = tk.Frame(parent, bg=self.SURFACE)
-        self.hist_frame.pack(fill='x', padx=12)
+        self.hist_frame.pack(fill='both', expand=True, padx=12)
 
     def _build_right(self, parent):
         # Stats bar
@@ -344,17 +341,17 @@ class IRApp:
         self.stats_bar.pack_propagate(False)
 
         self.stat_count = tk.Label(self.stats_bar, text="—",
-                                   bg=self.SURFACE, fg=self.ACCENT,
-                                   font=("Courier New", 20, "bold"))
+                                   bg=self.SURFACE, fg=self.HIGHLIGHT,
+                                   font=("Segoe UI", 24, "bold"))
         self.stat_count.pack(side='left', padx=(16,4), pady=8)
 
-        tk.Label(self.stats_bar, text="DOCUMENTS",
-                 bg=self.SURFACE, fg=self.MUTED,
-                 font=("Courier New", 8)).pack(side='left', padx=(0,16), anchor='s', pady=14)
+        tk.Label(self.stats_bar, text="📊 DOCUMENTS",
+                 bg=self.SURFACE, fg=self.SECONDARY,
+                 font=("Segoe UI", 10, "bold")).pack(side='left', padx=(0,16), anchor='s', pady=14)
 
-        self.stat_query = tk.Label(self.stats_bar, text="Run a query to see results",
+        self.stat_query = tk.Label(self.stats_bar, text="💭 Run a query to see results",
                                    bg=self.SURFACE, fg=self.MUTED,
-                                   font=("Courier New", 9))
+                                   font=("Segoe UI", 11))
         self.stat_query.pack(side='left')
 
         # Results area with scrollbar
@@ -368,10 +365,10 @@ class IRApp:
         self.results_list = tk.Listbox(
             container,
             bg=self.CARD, fg=self.TEXT,
-            font=("Courier New", 11),
-            relief='flat', bd=0,
+            font=("Segoe UI", 12),
+            relief='sunken', bd=3,
             selectbackground=self.ACCENT,
-            selectforeground="#000",
+            selectforeground="#ffffff",
             activestyle='none',
             highlightthickness=0,
             yscrollcommand=scrollbar.set
@@ -422,12 +419,12 @@ class IRApp:
         # Populate results list
         self.results_list.delete(0, 'end')
         if not ids:
-            self.results_list.insert('end', "  No documents found.")
+            self.results_list.insert('end', "  😔 No documents found for this query.")
             self.results_list.itemconfig(0, fg=self.MUTED)
         else:
             for doc_id in ids:
                 filename = self.docmap.get(str(doc_id), '—')
-                self.results_list.insert('end', f"  [{str(doc_id).zfill(3)}]  {filename}")
+                self.results_list.insert('end', f"  📄 [{str(doc_id).zfill(3)}]  {filename}")
 
         # Update history
         self._add_history(q, len(ids))
@@ -441,12 +438,12 @@ class IRApp:
         for hq, hc in self.history:
             row = tk.Frame(self.hist_frame, bg=self.CARD, cursor='hand2')
             row.pack(fill='x', pady=2)
-            tk.Label(row, text="●", bg=self.CARD, fg=self.ACCENT,
-                     font=("Courier New", 7)).pack(side='left', padx=(6,4), pady=4)
+            tk.Label(row, text="🔸", bg=self.CARD, fg=self.HIGHLIGHT,
+                     font=("Segoe UI", 8)).pack(side='left', padx=(6,4), pady=4)
             tk.Label(row, text=hq, bg=self.CARD, fg=self.TEXT,
-                     font=("Courier New", 9), anchor='w').pack(side='left', fill='x', expand=True)
-            tk.Label(row, text=f"{hc} docs", bg=self.CARD, fg=self.MUTED,
-                     font=("Courier New", 8)).pack(side='right', padx=8)
+                     font=("Segoe UI", 10), anchor='w').pack(side='left', fill='x', expand=True)
+            tk.Label(row, text=f"📄 {hc} docs", bg=self.CARD, fg=self.SECONDARY,
+                     font=("Segoe UI", 9, "bold")).pack(side='right', padx=8)
             row.bind('<Button-1>', lambda e, q=hq: self._load_history(q))
             for child in row.winfo_children():
                 child.bind('<Button-1>', lambda e, q=hq: self._load_history(q))
@@ -457,7 +454,6 @@ class IRApp:
         self.query_input.insert('1.0', q)
         self._run_query()
 
-#Entry point
 root = tk.Tk()
 app = IRApp(root)
 root.mainloop()
