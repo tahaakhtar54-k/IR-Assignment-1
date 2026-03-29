@@ -9,16 +9,17 @@
 #include <dirent.h>
 #include "include/json.hpp"
 
+using namespace std;
 using json = nlohmann::json;
 
 //Porter Stemmer
-static bool isVowel(const std::string& w, int i){
+static bool isVowel(const string& w, int i){
     char c=w[i];
     if(c=='a'||c=='e'||c=='i'||c=='o'||c=='u') return true;
     if(c=='y'&&i>0) return !isVowel(w,i-1);
     return false;
 }
-static int measure(const std::string& s){
+static int measure(const string& s){
     int m=0; bool inV=false;
     for(int i=0;i<(int)s.size();++i){
         if(isVowel(s,i)){inV=true;}
@@ -26,28 +27,28 @@ static int measure(const std::string& s){
     }
     return m;
 }
-static bool hasVowel(const std::string& s){
+static bool hasVowel(const string& s){
     for(int i=0;i<(int)s.size();++i) if(isVowel(s,i)) return true;
     return false;
 }
-static bool endsCVC(const std::string& w){
+static bool endsCVC(const string& w){
     int n=w.size();
     if(n<3) return false;
     char c3=w[n-1];
     return !isVowel(w,n-3)&&isVowel(w,n-2)&&!isVowel(w,n-1)
            &&c3!='w'&&c3!='x'&&c3!='y';
 }
-static bool hasSuffix(const std::string& w,const std::string& sfx,std::string& stem){
+static bool hasSuffix(const string& w,const string& sfx,string& stem){
     if(w.size()<sfx.size()) return false;
     if(w.compare(w.size()-sfx.size(),sfx.size(),sfx)==0){
         stem=w.substr(0,w.size()-sfx.size()); return true;
     }
     return false;
 }
-std::string porterStem(const std::string& word){
-    std::string w=word;
+string porterStem(const string& word){
+    string w=word;
     if(w.size()<=2) return w;
-    std::string stem;
+    string stem;
     if(hasSuffix(w,"sses",stem)) w=stem+"ss";
     else if(hasSuffix(w,"ies",stem)) w=stem+"i";
     else if(!hasSuffix(w,"ss",stem)&&hasSuffix(w,"s",stem)) w=stem;
@@ -56,7 +57,7 @@ std::string porterStem(const std::string& word){
     else if(hasSuffix(w,"ed",stem)){if(hasVowel(stem)){w=stem;extra=true;}}
     else if(hasSuffix(w,"ing",stem)){if(hasVowel(stem)){w=stem;extra=true;}}
     if(extra){
-        std::string s2;
+        string s2;
         if(hasSuffix(w,"at",s2)) w+="e";
         else if(hasSuffix(w,"bl",s2)) w+="e";
         else if(hasSuffix(w,"iz",s2)) w+="e";
@@ -86,7 +87,7 @@ std::string porterStem(const std::string& word){
                       "ous","ive","ize"};
     for(auto sfx:s4)
         if(hasSuffix(w,sfx,stem)){
-            if(std::string(sfx)=="ion"){
+            if(string(sfx)=="ion"){
                 if(!stem.empty()&&(stem.back()=='s'||stem.back()=='t')&&measure(stem)>1){w=stem;break;}
             } else if(measure(stem)>1){w=stem;break;}
         }
@@ -101,35 +102,35 @@ std::string porterStem(const std::string& word){
 }
 //End Porter Stemmer
 
-static std::vector<std::string> extractWords(const std::string& line){
-    std::vector<std::string> words;
-    std::string cur;
+static vector<string> extractWords(const string& line){
+    vector<string> words;
+    string cur;
     for(char c:line){
-        if(std::isalpha((unsigned char)c)) cur+=c;
+        if(isalpha((unsigned char)c)) cur+=c;
         else if(!cur.empty()){words.push_back(cur);cur.clear();}
     }
     if(!cur.empty()) words.push_back(cur);
     return words;
 }
 
-static int getNumber(const std::string& filename){
+static int getNumber(const string& filename){
     auto pos=filename.find('_');
-    if(pos==std::string::npos) return 0;
+    if(pos==string::npos) return 0;
     auto dot=filename.find('.',pos);
-    std::string num=filename.substr(pos+1, dot==std::string::npos ? std::string::npos : dot-pos-1);
-    try{ return std::stoi(num); } catch(...){ return 0; }
+    string num=filename.substr(pos+1, dot==string::npos ? string::npos : dot-pos-1);
+    try{ return stoi(num); } catch(...){ return 0; }
 }
 
-static std::vector<std::string> listFiles(const std::string& dirPath){
-    std::vector<std::string> files;
+static vector<string> listFiles(const string& dirPath){
+    vector<string> files;
     DIR* dir=opendir(dirPath.c_str());
-    if(!dir){ std::cerr<<"Cannot open directory: "<<dirPath<<"\n"; return files; }
+    if(!dir){ cerr<<"Cannot open directory: "<<dirPath<<"\n"; return files; }
     struct dirent* entry;
     while((entry=readdir(dir))!=nullptr){
-        std::string name=entry->d_name;
+        string name=entry->d_name;
         if(name=="."||name=="..") continue;
-        std::string fullPath=dirPath+"/"+name;
-        std::ifstream test(fullPath);
+        string fullPath=dirPath+"/"+name;
+        ifstream test(fullPath);
         if(test.good()) files.push_back(name);
     }
     closedir(dir);
@@ -137,12 +138,12 @@ static std::vector<std::string> listFiles(const std::string& dirPath){
 }
 
 int main(){
-    std::set<std::string> stopWords;
+    set<string> stopWords;
     {
-        std::ifstream f("Stopword-List.txt");
-        if(!f.is_open()){ std::cerr<<"Cannot open Stopword-List.txt\n"; return 1; }
-        std::string line;
-        while(std::getline(f,line)){
+        ifstream f("Stopword-List.txt");
+        if(!f.is_open()){ cerr<<"Cannot open Stopword-List.txt\n"; return 1; }
+        string line;
+        while(getline(f,line)){
             line.erase(0,line.find_first_not_of(" \t\r\n"));
             if(line.empty()) continue;
             line.erase(line.find_last_not_of(" \t\r\n")+1);
@@ -151,28 +152,28 @@ int main(){
         }
     }
 
-    std::map<std::string,std::vector<int>>                       index;
-    std::map<std::string,std::map<std::string,std::vector<int>>> posIdx;
-    std::map<std::string,std::string>                            docMap;
+    map<string,vector<int>>                       index;
+    map<string,map<string,vector<int>>> posIdx;
+    map<string,string>                            docMap;
 
     // Collect and sort speech files
-    std::string dirPath="Trump Speechs";
-    std::vector<std::string> filenames=listFiles(dirPath);
-    std::sort(filenames.begin(),filenames.end(),[](const std::string& a,const std::string& b){
+    string dirPath="Trump Speechs";
+    vector<string> filenames=listFiles(dirPath);
+    sort(filenames.begin(),filenames.end(),[](const string& a,const string& b){
         return getNumber(a)<getNumber(b);
     });
 
     for(int docId=0;docId<(int)filenames.size();++docId){
-        std::string docIdStr=std::to_string(docId);
+        string docIdStr=to_string(docId);
         docMap[docIdStr]=filenames[docId];
 
-        std::string fullPath=dirPath+"/"+filenames[docId];
-        std::ifstream f(fullPath);
-        if(!f.is_open()){ std::cerr<<"Cannot open "<<fullPath<<"\n"; continue; }
+        string fullPath=dirPath+"/"+filenames[docId];
+        ifstream f(fullPath);
+        if(!f.is_open()){ cerr<<"Cannot open "<<fullPath<<"\n"; continue; }
 
         int globalPos=0;
-        std::string line;
-        while(std::getline(f,line)){
+        string line;
+        while(getline(f,line)){
             line.erase(0,line.find_first_not_of(" \t\r\n"));
             if(line.empty()) continue;
             line.erase(line.find_last_not_of(" \t\r\n")+1);
@@ -180,9 +181,9 @@ int main(){
 
             auto words=extractWords(line);
             for(int localPos=0;localPos<(int)words.size();++localPos){
-                std::string w=words[localPos];
-                std::transform(w.begin(),w.end(),w.begin(),::tolower);
-                std::string stemmed=porterStem(w);
+                string w=words[localPos];
+                transform(w.begin(),w.end(),w.begin(),::tolower);
+                string stemmed=porterStem(w);
                 if(stopWords.count(stemmed)) continue;
 
                 int pos=globalPos+localPos;
@@ -196,16 +197,16 @@ int main(){
     }
 
     // Sort posting lists
-    for(auto& kv:index) std::sort(kv.second.begin(),kv.second.end());
+    for(auto& kv:index) sort(kv.second.begin(),kv.second.end());
     for(auto& kv:posIdx)
         for(auto& dv:kv.second)
-            std::sort(dv.second.begin(),dv.second.end());
+            sort(dv.second.begin(),dv.second.end());
 
     // Write JSON files
     {
         json j=json::object();
         for(auto& kv:index) j[kv.first]=kv.second;
-        std::ofstream out("inverted_index.json");
+        ofstream out("inverted_index.json");
         out<<j.dump(4)<<"\n";
     }
     {
@@ -214,16 +215,16 @@ int main(){
             j[kv.first]=json::object();
             for(auto& dv:kv.second) j[kv.first][dv.first]=dv.second;
         }
-        std::ofstream out("positional_index.json");
+        ofstream out("positional_index.json");
         out<<j.dump(4)<<"\n";
     }
     {
         json j=json::object();
         for(auto& kv:docMap) j[kv.first]=kv.second;
-        std::ofstream out("doc_map.json");
+        ofstream out("doc_map.json");
         out<<j.dump(4)<<"\n";
     }
 
-    std::cout<<"Indexing complete.\n";
+    cout<<"Indexing complete.\n";
     return 0;
 }
